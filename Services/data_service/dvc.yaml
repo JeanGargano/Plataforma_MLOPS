@@ -1,0 +1,51 @@
+# ==============================================================
+# PIPELINE DVC
+# Dataset: KAG_energydata_complete.csv
+# Ejecutar con: dvc repro
+# ==============================================================
+
+stages:
+
+  ingest:
+    cmd: python /app/src/ingest.py
+    deps:
+      - /app/src/ingest.py
+    params:
+      - /app/params.yaml:
+          - data.raw_path
+          - ingest
+          - preprocess.rango_termico_bins
+          - preprocess.rango_termico_labels
+    outs:
+      - /app/data/raw/KAG_energydata_complete.csv:
+          cache: false    # el archivo ya existe, solo se transforma
+
+  validate:
+    cmd: python /app/src/validate.py
+    deps:
+      - /app/src/validate.py
+      - /app/data/raw/KAG_energydata_complete.csv
+    params:
+      - /app/params.yaml:
+          - validate
+          - preprocess.numerical_features
+          - preprocess.categorical_features
+          - preprocess.target_column
+
+  preprocess:
+    cmd: python /app/src/preprocess.py
+    deps:
+      - /app/src/preprocess.py
+      - /app/data/raw/KAG_energydata_complete.csv
+    params:
+      - /app/params.yaml:
+          - preprocess
+          - split
+          - validate
+    outs:
+      - /app/data/processed/X_train.csv
+      - /app/data/processed/X_test.csv
+      - /app/data/processed/y_train.csv
+      - /app/data/processed/y_test.csv
+      - /app/data/processed/scaler.pkl
+      - /app/data/processed/encoders.pkl

@@ -1,0 +1,63 @@
+# ==============================================================
+# PARÁMETROS DEL PIPELINE DE DATOS
+# Dataset: KAG_energydata_complete.csv (series temporales)
+# Fuente: Kaggle - Energy consumption of appliances
+# ==============================================================
+
+data:
+  raw_path: /app/data/raw/KAG_energydata_complete.csv
+  processed_path: /app/data/processed/
+
+ingest:
+  columns_keep:
+    - date
+    - Appliances
+    - lights
+    - T2
+    - T6
+    - RH_out
+    - T_out
+  # Renombrado de columnas
+  rename_map:
+    Appliances : consumo_electrodomesticos
+    lights     : consumo_iluminacion
+    T2         : temperatura_sala
+    T6         : temperatura_exterior
+    RH_out     : humedad_exterior
+    T_out      : temperatura_meteorologica
+
+preprocess:
+  test_size: 0.2
+  random_state: 42
+  target_column: consumo_electrodomesticos
+  numerical_features:
+    - temperatura_sala
+    - consumo_iluminacion
+    - temperatura_exterior
+    - humedad_exterior
+    - temperatura_meteorologica
+    - hora
+    - dia_semana
+    - mes
+  categorical_features:
+    - es_fin_de_semana
+    - rango_termico
+  # Rangos para feature rango_termico (diferencia temp_sala - temp_exterior)
+  rango_termico_bins:
+    - -999
+    - 5
+    - 15
+    - 999
+  rango_termico_labels:
+    - Bajo
+    - Medio
+    - Alto
+
+split:
+  shuffle: false   
+
+validate:
+  min_rows: 1000
+  max_null_pct: 0.05
+  min_consumo: 0.0
+  max_consumo: 5000.0

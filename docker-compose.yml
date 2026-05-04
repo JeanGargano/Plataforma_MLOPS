@@ -1,0 +1,153 @@
+version: "3.9"
+
+# ==============================================================
+# REDES
+# ==============================================================
+networks:
+  mlops-net:
+    driver: bridge
+
+# ==============================================================
+# VOLÚMENES
+# ==============================================================
+volumes:
+  mlflow-data:        # base de datos SQLite de MLflow
+  mlflow-artifacts:   # artefactos de experimentos
+
+# ==============================================================
+# SERVICIOS
+# ==============================================================
+services:
+
+  # ------------------------------------------------------------
+  # 1. MLFLOW SERVER
+  #    Tracking de experimentos + Model Registry
+  #    UI disponible en http://localhost:5000
+  # ------------------------------------------------------------
+  mlflow-server:
+    image: ghcr.io/mlflow/mlflow:latest
+    container_name: mlflow-server
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlflow-data:/mlflow/db
+      - mlflow-artifacts:/mlflow/artifacts
+    environment:
+      - MLFLOW_BACKEND_STORE_URI=sqlite:///mlflow/db/mlflow.db
+      - MLFLOW_ARTIFACT_ROOT=/mlflow/artifacts
+      - MLFLOW_FLASK_SERVER_SECRET_KEY=mlops-energy-secret
+    command: >
+      mlflow server
+      --backend-store-uri sqlite:///mlflow/db/mlflow.db
+      --artifacts-destination /mlflow/artifacts
+      --host 0.0.0.0
+      --port 5000
+      --dev
+    networks:
+      - mlops-net
+
+  # ------------------------------------------------------------
+  # 2. DATA SERVICE
+  #    Pipeline de preprocesamiento reproducible con DVC
+  #    Se ejecuta como un job (no queda corriendo)
+  # ------------------------------------------------------------
+  data-service:
+    build:
+      context: ./services/data_service
+      dockerfile: Dockerfile
+    container_name: data-service
+    volumes:
+      - ./data:/app/data       
+    environment:
+      - AZURE_STORAGE_CONNECTION_STRING=${AZURE_STORAGE_CONNECTION_STRING}
+      - PARAMS_PATH=/app/params.yaml
+    networks:
+      - mlops-net
+    profiles:
+      - pipeline     
+
+  # ------------------------------------------------------------
+  # 3. TRAINING SERVICE
+  #    Entrena modelos y registra experimentos en MLflow
+  #    Se ejecuta como un job (no queda corriendo)
+  # ------------------------------------------------------------
+  training-service:
+    build:
+      context: ./services/training_service
+      dockerfile: Dockerfile
+    container_name: training-service
+    ports:
+      - "8003:8003" 
+    volumes:
+      - ./data:/app/data
+    environment:
+      - MLFLOW_TRACKING_URI=http://172.19.0.1:5000
+      - EXPERIMENT_NAME=energy-consumption-prediction
+    depends_on:
+      - mlflow-server
+    networks:
+      - mlops-net       
+
+  # ------------------------------------------------------------
+  # 4. PREDICTION SERVICE
+  #    API REST del modelo - endpoints /predict y /health
+  # ------------------------------------------------------------
+  prediction-service:
+    build:
+      context: ./services/prediction_service
+      dockerfile: Dockerfile
+    container_name: prediction-service
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./data/logs:/app/logs     # guarda predicciones para monitoreo
+      - ./data/reference:/app/reference
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow-server:5000
+      - MODEL_URI=models:/prediction-energy-model/Production
+      - LOG_PATH=/app/logs/predictions.csv
+      - PORT=8001
+    depends_on:
+      mlflow-server:
+        condition: service_healthy
+    networks:
+      - mlops-net
+    restart: unless-stopped
+
+  # ------------------------------------------------------------
+  # 5. RECOMMENDATION SERVICE
+  #    Recibe resultado de predicción y consulta Gemini API
+  # ------------------------------------------------------------
+  recommendation-service:
+    build:
+      context: ./services/recommendation_service
+      dockerfile: Dockerfile
+    container_name: recommendation-service
+    ports:
+      - "8002:8002"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - PORT=8002
+    networks:
+      - mlops-net
+    restart: unless-stopped
+
+  # ------------------------------------------------------------
+  # 6. API GATEWAY (Nginx)
+  #    Punto de entrada único
+  # ------------------------------------------------------------
+  api-gateway:
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    ports:
+      - "80:80"
+    depends_on:
+      - prediction-service
+      - recommendation-service
+    networks:
+      - mlops-net
+    restart: unless-stopped
+
+  
