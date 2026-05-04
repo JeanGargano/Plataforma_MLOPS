@@ -43,20 +43,20 @@ Antes de comenzar asegúrate de tener instalado:
 | Docker Compose | 2.x 
 | Git            | cualquiera 
 
-Asegúrate de que Docker Desktop esté corriendo antes de ejecutar cualquier comando.
+Asegúrarse de que Docker Desktop esté corriendo antes de ejecutar cualquier comando.
 
 ---
 
 ## Configuración del entorno
 
-**1. Clona el repositorio**
+**1. Clonar el repositorio**
 
 git clone https://github.com/tu-usuario/mlops-energy-platform.git
 cd mlops-energy-platform
 
-**2. Crea el archivo `.env`**
+**2. Crear el archivo `.env`**
 
-**3. Completa las variables en el .env con la siguiente información**
+**3. Completar las variables en el .env con la siguiente información**
 
 # Azure Blob Storage (para DVC remote)
 AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=https;AccountName=...
@@ -80,17 +80,17 @@ MODEL_STAGE=Production
 DRIFT_THRESHOLD=0.2
 CHECK_INTERVAL_MINUTES=30
 
-**4. Coloca el dataset en la carpeta correcta**
+**4. Colocar el dataset en la carpeta correcta**
 
 data/raw/KAG_energydata_complete.csv
 
-> Descarga el dataset desde [Kaggle — Appliances Energy Prediction](https://www.kaggle.com/datasets/loveall/appliances-energy-prediction)
+> Descargar el dataset desde [Kaggle — Appliances Energy Prediction](https://www.kaggle.com/datasets/loveall/appliances-energy-prediction)
 
 ---
 
 ## Levantar el proyecto
 
-Sigue este orden estrictamente. Cada paso depende del anterior.
+Seguir este orden estrictamente. Cada paso depende del anterior.
 
 ### Paso 1 — Levantar MLflow Server
 
@@ -131,36 +131,15 @@ Una vez levantado, dispara el entrenamiento desde Postman o curl:
 
 curl -X POST http://localhost:8003/train
 
-Verifica en MLflow UI que aparecen los experimentos:
+Verificar en MLflow UI que aparecen los experimentos:
 http://localhost:5000
 
-Debes ver 3 runs comparados bajo el experimento `energy-consumption-prediction` y el mejor modelo en estado **Production** en el Model Registry.
-
----
 
 ### Paso 4 — Levantar todos los servicios
 
-Con el modelo en Production, levanta el stack completo:
+Con el modelo en Production, levantar el stack completo:
 
 docker compose up -d
-
-Verifica que todos los contenedores están corriendo:
-
-docker compose ps
-
-Debes ver todos en estado `running`:
-
-```
-NAME                     STATUS
-mlflow-server            running
-data-service             exited (OK, es un job)
-training-service         running
-prediction-service       running
-recommendation-service   running
-api-gateway              running
-prometheus               running
-grafana                  running
-```
 
 ---
 
@@ -177,7 +156,6 @@ grafana                  running
   GET   /health    Estado del servicio 
   POST  /train     Entrena modelos y promueve el mejor 
   POST  /retrain   Reentrenamiento en background 
-  GET   /evaluate  Evalúa el modelo en Production 
 
 ### Recommendation Service — `http://localhost:8002`
 
@@ -186,13 +164,24 @@ grafana                  running
 
 ### Vía API Gateway — `http://localhost:80`
 
-POST    /api/predict          prediction-service /predict |
-GET     /api/health           prediction-service /health |
-POST    /api/recommendations  recommendation-service /recommendations |
+  POST    /api/predict          prediction-service /predict |
+  GET     /api/health           prediction-service /health |
+  POST    /api/recommendations  recommendation-service /recommendations |
 
 ---
 
-## Ejemplo de uso en Postman
+---
+
+## Servicios y puertos
+
+| Servicio               | URL | Descripción |
+| API Gateway            | `http://localhost:80`   | Punto de entrada único
+| Prediction Service     | `http://localhost:8001` | API de predicción 
+| Recommendation Service | `http://localhost:8002` | API de recomendaciones
+| Training Service       | `http://localhost:8003` | API de entrenamiento 
+| MLflow UI              | `http://localhost:5000` | Gestión ciclo de vida ML
+
+---
 
 ### 1. Predecir consumo
 
@@ -224,6 +213,7 @@ Respuesta esperada:
   "unidad": "Wh"
 }
 ```
+---
 
 ---
 
@@ -263,7 +253,7 @@ Respuesta esperada:
 
 ---
 
-### 3. Reentrenar el modelo manualmente
+### 3. Entrenar el modelo manualmente
 
 ```
 POST http://localhost:8003/train
@@ -281,46 +271,6 @@ No requiere body. Respuesta esperada:
 }
 ```
 
----
-
-## Servicios y puertos
-
-| Servicio | URL | Descripción |
-|---|---|---|
-| API Gateway | `http://localhost:80` | Punto de entrada único |
-| Prediction Service | `http://localhost:8001` | API de predicción |
-| Recommendation Service | `http://localhost:8002` | API de recomendaciones |
-| Training Service | `http://localhost:8003` | API de entrenamiento |
-| MLflow UI | `http://localhost:5000` | Experimentos y Model Registry |
-| Prometheus | `http://localhost:9090` | Métricas del sistema |
-| Grafana | `http://localhost:3001` | Dashboards de monitoreo |
-
----
-
-## Comandos útiles
-
-```powershell
-# Ver logs de un servicio específico
-docker compose logs prediction-service -f
-
-# Reiniciar un servicio
-docker compose restart prediction-service
-
-# Detener todo
-docker compose down
-
-# Detener y eliminar volúmenes (reset completo)
-docker compose down -v
-
-# Ver estado de todos los contenedores
-docker compose ps
-
-# Reconstruir una imagen tras cambios en el código
-docker compose build prediction-service
-docker compose up prediction-service -d
-```
-
----
-
 > **Documentación Swagger** disponible en cada servicio en la ruta `/docs`
 > Ejemplo: `http://localhost:8001/docs`
+

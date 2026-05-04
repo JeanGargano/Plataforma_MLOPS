@@ -1,29 +1,19 @@
 version: "3.9"
 
-# ==============================================================
 # REDES
-# ==============================================================
 networks:
   mlops-net:
     driver: bridge
 
-# ==============================================================
 # VOLÚMENES
-# ==============================================================
 volumes:
-  mlflow-data:        # base de datos SQLite de MLflow
-  mlflow-artifacts:   # artefactos de experimentos
+  mlflow-data:       
+  mlflow-artifacts: 
 
-# ==============================================================
 # SERVICIOS
-# ==============================================================
 services:
 
-  # ------------------------------------------------------------
   # 1. MLFLOW SERVER
-  #    Tracking de experimentos + Model Registry
-  #    UI disponible en http://localhost:5000
-  # ------------------------------------------------------------
   mlflow-server:
     image: ghcr.io/mlflow/mlflow:latest
     container_name: mlflow-server
@@ -36,6 +26,8 @@ services:
       - MLFLOW_BACKEND_STORE_URI=sqlite:///mlflow/db/mlflow.db
       - MLFLOW_ARTIFACT_ROOT=/mlflow/artifacts
       - MLFLOW_FLASK_SERVER_SECRET_KEY=mlops-energy-secret
+      - MLFLOW_ENABLE_PROXY_FIX=true
+      - GUNICORN_CMD_ARGS=--timeout 120
     command: >
       mlflow server
       --backend-store-uri sqlite:///mlflow/db/mlflow.db
@@ -43,14 +35,13 @@ services:
       --host 0.0.0.0
       --port 5000
       --dev
+      --allowed-hosts "*"
     networks:
       - mlops-net
 
-  # ------------------------------------------------------------
+
+
   # 2. DATA SERVICE
-  #    Pipeline de preprocesamiento reproducible con DVC
-  #    Se ejecuta como un job (no queda corriendo)
-  # ------------------------------------------------------------
   data-service:
     build:
       context: ./services/data_service
@@ -66,12 +57,13 @@ services:
     profiles:
       - pipeline     
 
-  # ------------------------------------------------------------
+ 
+
   # 3. TRAINING SERVICE
-  #    Entrena modelos y registra experimentos en MLflow
-  #    Se ejecuta como un job (no queda corriendo)
-  # ------------------------------------------------------------
   training-service:
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow-server:5000
+      - EXPERIMENT_NAME=energy-consumption-prediction
     build:
       context: ./services/training_service
       dockerfile: Dockerfile
@@ -80,18 +72,14 @@ services:
       - "8003:8003" 
     volumes:
       - ./data:/app/data
-    environment:
-      - MLFLOW_TRACKING_URI=http://172.19.0.1:5000
-      - EXPERIMENT_NAME=energy-consumption-prediction
     depends_on:
       - mlflow-server
     networks:
       - mlops-net       
 
-  # ------------------------------------------------------------
+
+
   # 4. PREDICTION SERVICE
-  #    API REST del modelo - endpoints /predict y /health
-  # ------------------------------------------------------------
   prediction-service:
     build:
       context: ./services/prediction_service
@@ -100,7 +88,7 @@ services:
     ports:
       - "8001:8001"
     volumes:
-      - ./data/logs:/app/logs     # guarda predicciones para monitoreo
+      - ./data/logs:/app/logs  
       - ./data/reference:/app/reference
     environment:
       - MLFLOW_TRACKING_URI=http://mlflow-server:5000
@@ -108,16 +96,14 @@ services:
       - LOG_PATH=/app/logs/predictions.csv
       - PORT=8001
     depends_on:
-      mlflow-server:
-        condition: service_healthy
+      - mlflow-server
     networks:
       - mlops-net
     restart: unless-stopped
 
-  # ------------------------------------------------------------
+  
+
   # 5. RECOMMENDATION SERVICE
-  #    Recibe resultado de predicción y consulta Gemini API
-  # ------------------------------------------------------------
   recommendation-service:
     build:
       context: ./services/recommendation_service
@@ -132,10 +118,9 @@ services:
       - mlops-net
     restart: unless-stopped
 
-  # ------------------------------------------------------------
+
+
   # 6. API GATEWAY (Nginx)
-  #    Punto de entrada único
-  # ------------------------------------------------------------
   api-gateway:
     build:
       context: ./gateway

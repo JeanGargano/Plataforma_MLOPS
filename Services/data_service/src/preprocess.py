@@ -13,11 +13,6 @@ def load_params(path: str = "/app/params.yaml") -> dict:
 
 
 def encode_categoricals(df: pd.DataFrame, params: dict):
-    """
-    Label Encoding para features categóricas:
-      - es_fin_de_semana : 0 / 1  (ya es numérico, solo se incluye)
-      - rango_termico    : Bajo / Medio / Alto -> 0 / 1 / 2
-    """
     df       = df.copy()
     encoders = {}
 
@@ -44,9 +39,8 @@ def preprocess(params: dict) -> None:
     print("Cargando dataset...")
     df = pd.read_csv(raw_path)
 
-    # ----------------------------------------------------------
+    
     # 1. Limpieza básica
-    # ----------------------------------------------------------
     filas_inicial = len(df)
     df = df.dropna()
     df = df[df[target_col] > params["validate"]["min_consumo"]]
@@ -54,9 +48,7 @@ def preprocess(params: dict) -> None:
     print(f"Limpieza: {filas_inicial} -> {len(df)} filas "
           f"({filas_inicial - len(df)} eliminadas)")
 
-    # ----------------------------------------------------------
     # 2. Encoding de categóricas
-    # ----------------------------------------------------------
     print("Aplicando encoding...")
     df, encoders = encode_categoricals(df, params)
 
@@ -70,9 +62,7 @@ def preprocess(params: dict) -> None:
 
     print(f"Features del modelo ({len(feature_cols)}): {feature_cols}")
 
-    # ----------------------------------------------------------
     # 3. Split temporal sin shuffle (serie de tiempo)
-    # ----------------------------------------------------------
     n       = len(X)
     n_test  = int(n * test_size)
     n_train = n - n_test
@@ -89,10 +79,7 @@ def preprocess(params: dict) -> None:
 
     print(f"Split temporal: train={len(X_train)} | test={len(X_test)}")
 
-    # ----------------------------------------------------------
     # 4. Normalización con MinMaxScaler
-    #    fit solo en train, transform en test
-    # ----------------------------------------------------------
     scaler = MinMaxScaler()
 
     X_train_scaled = X_train.copy()
@@ -103,9 +90,7 @@ def preprocess(params: dict) -> None:
 
     print("Normalización MinMaxScaler aplicada")
 
-    # ----------------------------------------------------------
     # 5. Guarda artefactos
-    # ----------------------------------------------------------
     X_train_scaled.to_csv(f"{processed_path}X_train.csv", index=False)
     X_test_scaled.to_csv(f"{processed_path}X_test.csv",   index=False)
     y_train.to_csv(f"{processed_path}y_train.csv",        index=False)
@@ -115,9 +100,7 @@ def preprocess(params: dict) -> None:
     joblib.dump(scaler,   f"{processed_path}scaler.pkl")
     joblib.dump(encoders, f"{processed_path}encoders.pkl")
 
-    # ----------------------------------------------------------
-    # 6. Hash reproducibilidad (R4.2)
-    # ----------------------------------------------------------
+    # 6. Hash reproducibilidad
     hash_val = hashlib.md5(X_train_scaled.to_json().encode()).hexdigest()
 
     print(f"\nArtefactos guardados en : {processed_path}")
