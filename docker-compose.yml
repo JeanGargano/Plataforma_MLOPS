@@ -48,14 +48,14 @@ services:
       dockerfile: Dockerfile
     container_name: data-service
     volumes:
-      - ./data:/app/data       
+      - . /data:/app/data       
     environment:
       - AZURE_STORAGE_CONNECTION_STRING=${AZURE_STORAGE_CONNECTION_STRING}
       - PARAMS_PATH=/app/params.yaml
     networks:
       - mlops-net
     profiles:
-      - pipeline     
+      - pipeline    
 
  
 
