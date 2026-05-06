@@ -1,7 +1,7 @@
 import os
 from fastapi import FastAPI, HTTPException
-from recommendation_schemas import RecommendationInput, RecommendationOutput
-from gemini_client          import get_recommendations
+from schemas import RecommendationInput, RecommendationOutput
+from gemini_client import get_recommendations
 
 
 app = FastAPI(
@@ -23,10 +23,6 @@ def health():
 
 @app.post("/recommendations", response_model=RecommendationOutput)
 def recommendations(data: RecommendationInput):
-    """
-    Recibe el resultado de /predict junto con el contexto
-    del usuario y retorna recomendaciones generadas por Gemini.
-    """
     if not os.getenv("GEMINI_API_KEY"):
         raise HTTPException(
             status_code=503,

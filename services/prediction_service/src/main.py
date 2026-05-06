@@ -1,7 +1,6 @@
 import os
 import joblib
 import pandas as pd
-import numpy as np
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 
@@ -10,19 +9,42 @@ from model_loader import load_model, MODEL_URI
 from logger       import log_prediction
 
 
-# Estado global del servidor
+PROCESSED_PATH = os.getenv("PROCESSED_PATH", "/app/data/processed/")
+
 state = {
-    "model"   : None,
-    "scaler"  : None,
-    "encoders": None,
+    "model"  : None,
+    "scaler" : None,
 }
 
+FEATURE_COLS = [
+    "temperatura_sala",
+    "consumo_iluminacion",
+    "temperatura_exterior",
+    "humedad_exterior",
+    "temperatura_meteorologica",
+    "hora",
+    "dia_semana",
+    "mes",
+    "es_fin_de_semana_enc",
+    "rango_termico_enc"
+]
 
-# LIFESPAN — carga modelo y artefactos al arrancar el servidor
+
+# LIFESPAN
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Carga modelo desde MLflow
-    state["model"] = load_model()
+    state["model"]  = load_model()
+
+    # Carga scaler generado por el data_service
+    state["scaler"] = joblib.load(f"{PROCESSED_PATH}scaler.pkl")
+    print("Modelo y scaler cargados correctamente.")
+
+    yield  # <-- servidor corriendo
+
+    # Cleanup al apagar
+    state["model"]  = None
+    state["scaler"] = None
 
 
 # APP
@@ -50,12 +72,23 @@ def predict(data: PredictionInput):
         raise HTTPException(status_code=503, detail="Modelo no disponible")
 
     input_dict = data.model_dump()
-    
-    # 4. Predicción
-    prediction = state["model"].predict(data)
+
+    # 1. Construye DataFrame con el orden exacto de features
+    df = pd.DataFrame([input_dict])[FEATURE_COLS]
+
+    # 2. Aplica scaler (solo columnas numericas, igual que en preprocess.py)
+    numerical_cols = [
+        "temperatura_sala", "consumo_iluminacion", "temperatura_exterior",
+        "humedad_exterior", "temperatura_meteorologica",
+        "hora", "dia_semana", "mes"
+    ]
+    df[numerical_cols] = state["scaler"].transform(df[numerical_cols])
+
+    # 3. Prediccion
+    prediction = state["model"].predict(df)
     result     = round(float(prediction[0]), 4)
 
-    # 5. Loguea para monitoreo de drift
+    # 4. Loguea para monitoreo de drift
     log_prediction(input_dict, result)
 
     return PredictionOutput(

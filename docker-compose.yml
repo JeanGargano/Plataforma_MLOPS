@@ -47,8 +47,8 @@ services:
       context: ./services/data_service
       dockerfile: Dockerfile
     container_name: data-service
-    volumes:
-      - . /data:/app/data       
+    volumes:  
+      - ./data:/app/data       
     environment:
       - AZURE_STORAGE_CONNECTION_STRING=${AZURE_STORAGE_CONNECTION_STRING}
       - PARAMS_PATH=/app/params.yaml
@@ -88,12 +88,14 @@ services:
     ports:
       - "8001:8001"
     volumes:
+      - ./data/processed:/app/data/processed 
       - ./data/logs:/app/logs  
       - ./data/reference:/app/reference
     environment:
       - MLFLOW_TRACKING_URI=http://mlflow-server:5000
       - MODEL_URI=models:/prediction-energy-model/Production
       - LOG_PATH=/app/logs/predictions.csv
+      - PROCESSED_PATH=/app/data/processed/
       - PORT=8001
     depends_on:
       - mlflow-server
@@ -123,7 +125,7 @@ services:
   # 6. API GATEWAY (Nginx)
   api-gateway:
     build:
-      context: ./gateway
+      context: ./services/gateway
       dockerfile: Dockerfile
     container_name: api-gateway
     ports:

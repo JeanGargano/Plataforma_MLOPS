@@ -1,19 +1,16 @@
 import os
-import google.generativeai as genai
-
-
+from google import genai
+from google.genai import types
+ 
+ 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_MODEL   = "gemini-1.5-flash"
-
-# Configura el cliente una sola vez al importar el módulo
-genai.configure(api_key=GEMINI_API_KEY)
+GEMINI_MODEL   = "gemini-2.0-flash-lite"
+ 
+client = genai.Client(api_key=GEMINI_API_KEY)
 
 
 def clasificar_consumo(consumo_wh: float) -> str:
-    """
-    Clasifica el nivel de consumo según umbrales del dataset.
-    Dataset: min=10 Wh, media=97.69 Wh, max=1080 Wh
-    """
+
     if consumo_wh < 60:
         return "Bajo"
     elif consumo_wh < 200:
@@ -23,10 +20,6 @@ def clasificar_consumo(consumo_wh: float) -> str:
 
 
 def construir_prompt(data: dict, nivel_consumo: str) -> str:
-    """
-    Construye el prompt que se envía a Gemini con el contexto
-    completo del usuario y su resultado de predicción.
-    """
     dia_map = {
         0: "lunes", 1: "martes", 2: "miércoles",
         3: "jueves", 4: "viernes", 5: "sábado", 6: "domingo"
@@ -75,14 +68,12 @@ Responde en español.
 
 
 def get_recommendations(data: dict) -> tuple[str, str]:
-    """
-    Llama a Gemini API con el contexto del usuario
-    y retorna (recomendaciones, nivel_consumo).
-    """
     nivel_consumo = clasificar_consumo(data["consumo_predicho"])
     prompt        = construir_prompt(data, nivel_consumo)
-
-    model    = genai.GenerativeModel(GEMINI_MODEL)
-    response = model.generate_content(prompt)
-
+ 
+    response = client.models.generate_content(
+        model=GEMINI_MODEL,
+        contents=prompt
+    )
+ 
     return response.text, nivel_consumo
