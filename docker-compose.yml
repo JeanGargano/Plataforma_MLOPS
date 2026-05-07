@@ -44,7 +44,7 @@ services:
   # 2. DATA SERVICE
   data-service:
     build:
-      context: ./services/data_service
+      context: ./Services/data_service
       dockerfile: Dockerfile
     container_name: data-service
     volumes:
@@ -65,7 +65,7 @@ services:
       - MLFLOW_TRACKING_URI=http://mlflow-server:5000
       - EXPERIMENT_NAME=energy-consumption-prediction
     build:
-      context: ./services/training_service
+      context: ./Services/training_Service
       dockerfile: Dockerfile
     container_name: training-service
     ports:
@@ -82,7 +82,7 @@ services:
   # 4. PREDICTION SERVICE
   prediction-service:
     build:
-      context: ./services/prediction_service
+      context: ./Services/prediction_Service
       dockerfile: Dockerfile
     container_name: prediction-service
     ports:
@@ -106,7 +106,7 @@ services:
   # 5. RECOMMENDATION SERVICE
   recommendation-service:
     build:
-      context: ./services/recommendation_service
+      context: ./Services/recomendation_Service
       dockerfile: Dockerfile
     container_name: recommendation-service
     ports:
@@ -133,6 +133,55 @@ services:
       - recommendation-service
     networks:
       - mlops-net
+    restart: unless-stopped
+
+  # 7. MONITORING SERVICE
+  monitoring-service:
+    build:
+      context: ./Services/monitoring_service
+      dockerfile: Dockerfile
+    container_name: monitoring-service
+    ports:
+      - "8004:8004"
+    volumes:
+      - ./Data/logs:/app/logs
+      - ./Data/reference:/app/reference
+    environment:
+      - LOG_PATH=/app/logs/predictions.csv
+      - REFERENCE_PATH=/app/reference/reference.csv
+    networks:
+      - mlops-net
+    restart: unless-stopped
+
+  # 8. PROMETHEUS (Recolector de Métricas)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - mlops-net
+    depends_on:
+      - monitoring-service
+    restart: unless-stopped
+
+  # 9. GRAFANA (Dashboard Visual)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+    networks:
+      - mlops-net
+    depends_on:
+      - prometheus
     restart: unless-stopped
 
   

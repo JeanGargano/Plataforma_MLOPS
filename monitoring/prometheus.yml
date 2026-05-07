@@ -1,0 +1,16 @@
+global:
+  scrape_interval: 10s # Cada cuánto tiempo Prometheus irá a buscar métricas
+  evaluation_interval: 10s
+
+rule_files:
+  # - "alert_rules.yml" # Descomentar cuando implementemos alertas al correo/slack
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'mlops_monitoring'
+    static_configs:
+      # Apunta al nombre del contenedor y su puerto interno
+      - targets: ['monitoring-service:8004']
