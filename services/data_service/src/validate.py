@@ -11,7 +11,6 @@ def load_params(path: str = "/app/params.yaml") -> dict:
 def validate(df: pd.DataFrame, params: dict) -> None:
     """
     Valida calidad del dataset después de la ingesta.
-    Lanza sys.exit(1) si falla alguna validación.
     """
     v      = params["validate"]
     p      = params["preprocess"]

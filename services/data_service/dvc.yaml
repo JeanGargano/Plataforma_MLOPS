@@ -1,8 +1,6 @@
-# ==============================================================
 # PIPELINE DVC
 # Dataset: KAG_energydata_complete.csv
 # Ejecutar con: dvc repro
-# ==============================================================
 
 stages:
 

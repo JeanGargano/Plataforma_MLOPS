@@ -33,7 +33,7 @@ def health():
 @app.post("/train", response_model=TrainResponse)
 def train():
     """
-    Lanza el pipeline de entrenamiento completo:
+    Lnza el pipealine de entrenamiento completo:
     entrena 3 modelos y promueve el mejor a Production.
     """
     results, best = run_training()

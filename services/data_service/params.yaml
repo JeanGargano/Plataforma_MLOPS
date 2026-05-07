@@ -1,8 +1,6 @@
-# ==============================================================
 # PARÁMETROS DEL PIPELINE DE DATOS
 # Dataset: KAG_energydata_complete.csv (series temporales)
 # Fuente: Kaggle - Energy consumption of appliances
-# ==============================================================
 
 data:
   raw_path: /app/data/raw/KAG_energydata_complete.csv

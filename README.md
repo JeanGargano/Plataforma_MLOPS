@@ -200,8 +200,8 @@ Content-Type: application/json
   "hora": 17,
   "dia_semana": 0,
   "mes": 1,
-  "es_fin_de_semana": 0,
-  "rango_termico": "Medio"
+  "es_fin_de_semana_enc": 0,
+  "rango_termico_enc": 1
 }
 ```
 
@@ -228,7 +228,7 @@ Content-Type: application/json
 
 ```json
 {
-  "consumo_predicho": 97.5,
+  "consumo_predicho": 169.8493,
   "temperatura_sala": 20.5,
   "consumo_iluminacion": 30.0,
   "temperatura_exterior": 7.0,

@@ -1,0 +1,2 @@
+timestamp,temperatura_sala,consumo_iluminacion,temperatura_exterior,humedad_exterior,temperatura_meteorologica,hora,dia_semana,mes,es_fin_de_semana,rango_termico,consumo_predicho
+2026-05-05T20:17:40.826588,20.5,30.0,7.0,92.0,6.6,17,0,1,,,169.8493
