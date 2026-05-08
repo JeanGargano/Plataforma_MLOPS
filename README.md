@@ -210,9 +210,9 @@ docker compose up -d
 
 ## Servicios y puertos
 
-| Servicio               | URL | Descripción |
-|------------------------|-----|-------------|
-| API Gateway            | `http://localhost:80` | Punto de entrada único |
+| Servicio               | URL | Descripción       |
+|------------------------|-----|-------------      |
+| API Gateway            | `http://localhost:80`   | Punto de entrada único |
 | Prediction Service     | `http://localhost:8001` | API de predicción |
 | Recommendation Service | `http://localhost:8002` | API de recomendaciones |
 | Training Service       | `http://localhost:8003` | API de entrenamiento |
