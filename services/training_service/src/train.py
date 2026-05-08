@@ -67,6 +67,10 @@ def train_and_log(model, model_name: str, params: dict,
     Entrena un modelo, calcula métricas y registra en MLflow.
     Retorna un dict con nombre, run_id y métricas de test.
     """
+    # Cierra cualquier corrida que haya quedado colgando por error
+    if mlflow.active_run():
+        mlflow.end_run()
+
     with mlflow.start_run(run_name=model_name):
 
         # Entrenamiento
@@ -123,6 +127,10 @@ def train_and_log(model, model_name: str, params: dict,
 # PIPELINE DE ENTRENAMIENTO
 # ==============================================================
 def run_training():
+    # Cierra cualquier corrida que haya quedado colgando globalmente antes de empezar
+    while mlflow.active_run():
+        mlflow.end_run()
+
     # 1. Conecta con MLflow
     mlflow.set_tracking_uri(MLFLOW_URI)
     mlflow.set_experiment(EXPERIMENT)

@@ -44,8 +44,8 @@ def log_prediction(input_data: dict, prediction: float) -> None:
         "hora"                     : input_data.get("hora"),
         "dia_semana"               : input_data.get("dia_semana"),
         "mes"                      : input_data.get("mes"),
-        "es_fin_de_semana"         : input_data.get("es_fin_de_semana"),
-        "rango_termico"            : input_data.get("rango_termico"),
+        "es_fin_de_semana" : input_data.get("es_fin_de_semana") or input_data.get("es_fin_de_semana_enc"),
+        "rango_termico"    : input_data.get("rango_termico") or input_data.get("rango_termico_enc"),
         "consumo_predicho"         : round(prediction, 4)
     }
 

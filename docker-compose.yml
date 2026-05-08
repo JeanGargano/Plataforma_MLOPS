@@ -44,7 +44,7 @@ services:
   # 2. DATA SERVICE
   data-service:
     build:
-      context: ./Services/data_service
+      context: ./services/data_service
       dockerfile: Dockerfile
     container_name: data-service
     volumes:  
@@ -65,7 +65,7 @@ services:
       - MLFLOW_TRACKING_URI=http://mlflow-server:5000
       - EXPERIMENT_NAME=energy-consumption-prediction
     build:
-      context: ./Services/training_Service
+      context: ./services/training_service
       dockerfile: Dockerfile
     container_name: training-service
     ports:
@@ -82,7 +82,7 @@ services:
   # 4. PREDICTION SERVICE
   prediction-service:
     build:
-      context: ./Services/prediction_Service
+      context: ./services/prediction_service
       dockerfile: Dockerfile
     container_name: prediction-service
     ports:
@@ -108,7 +108,7 @@ services:
   # 5. RECOMMENDATION SERVICE
   recommendation-service:
     build:
-      context: ./Services/recomendation_Service
+      context: ./services/recommendation_service
       dockerfile: Dockerfile
     container_name: recommendation-service
     ports:
@@ -140,7 +140,7 @@ services:
   # 7. MONITORING SERVICE
   monitoring-service:
     build:
-      context: ./Services/monitoring_service
+      context: ./services/monitoring_service
       dockerfile: Dockerfile
     container_name: monitoring-service
     ports:
