@@ -2,188 +2,180 @@ version: "3.9"
 
 # REDES
 networks:
-  mlops-net:
-    driver: bridge
+    mlops-net:
+        driver: bridge
 
 # VOLÚMENES
 volumes:
-  mlflow-data:       
-  mlflow-artifacts: 
+    mlflow-data:
+    mlflow-artifacts:
+    grafana-storage:
 
 # SERVICIOS
 services:
+    # 1. MLFLOW SERVER
+    mlflow-server:
+        image: ghcr.io/mlflow/mlflow:latest
+        container_name: mlflow-server
+        ports:
+            - "5000:5000"
+        volumes:
+            - mlflow-data:/mlflow/db
+            - mlflow-artifacts:/mlflow/artifacts
+        environment:
+            - MLFLOW_BACKEND_STORE_URI=sqlite:///mlflow/db/mlflow.db
+            - MLFLOW_ARTIFACT_ROOT=/mlflow/artifacts
+            - MLFLOW_FLASK_SERVER_SECRET_KEY=mlops-energy-secret
+            - MLFLOW_ENABLE_PROXY_FIX=true
+            - GUNICORN_CMD_ARGS=--timeout 120
+        command: >
+            mlflow server
+            --backend-store-uri sqlite:///mlflow/db/mlflow.db
+            --artifacts-destination /mlflow/artifacts
+            --host 0.0.0.0
+            --port 5000
+            --dev
+            --allowed-hosts "*"
+        networks:
+            - mlops-net
 
-  # 1. MLFLOW SERVER
-  mlflow-server:
-    image: ghcr.io/mlflow/mlflow:latest
-    container_name: mlflow-server
-    ports:
-      - "5000:5000"
-    volumes:
-      - mlflow-data:/mlflow/db
-      - mlflow-artifacts:/mlflow/artifacts
-    environment:
-      - MLFLOW_BACKEND_STORE_URI=sqlite:///mlflow/db/mlflow.db
-      - MLFLOW_ARTIFACT_ROOT=/mlflow/artifacts
-      - MLFLOW_FLASK_SERVER_SECRET_KEY=mlops-energy-secret
-      - MLFLOW_ENABLE_PROXY_FIX=true
-      - GUNICORN_CMD_ARGS=--timeout 120
-    command: >
-      mlflow server
-      --backend-store-uri sqlite:///mlflow/db/mlflow.db
-      --artifacts-destination /mlflow/artifacts
-      --host 0.0.0.0
-      --port 5000
-      --dev
-      --allowed-hosts "*"
-    networks:
-      - mlops-net
+    # 2. DATA SERVICE
+    data-service:
+        build:
+            context: ./services/data_service
+            dockerfile: Dockerfile
+        container_name: data-service
+        volumes:
+            - ./data:/app/data
+        environment:
+            - AZURE_STORAGE_CONNECTION_STRING=${AZURE_STORAGE_CONNECTION_STRING}
+            - PARAMS_PATH=/app/params.yaml
+        networks:
+            - mlops-net
+        profiles:
+            - pipeline
 
+    # 3. TRAINING SERVICE
+    training-service:
+        environment:
+            - MLFLOW_TRACKING_URI=http://mlflow-server:5000
+            - EXPERIMENT_NAME=energy-consumption-prediction
+        build:
+            context: ./services/training_service
+            dockerfile: Dockerfile
+        container_name: training-service
+        ports:
+            - "8003:8003"
+        volumes:
+            - ./data:/app/data
+        depends_on:
+            - mlflow-server
+        networks:
+            - mlops-net
 
+    # 4. PREDICTION SERVICE
+    prediction-service:
+        build:
+            context: ./services/prediction_service
+            dockerfile: Dockerfile
+        container_name: prediction-service
+        ports:
+            - "8001:8001"
+        volumes:
+            - ./data/processed:/app/data/processed
+            - ./data/logs:/app/logs
+            - ./data/reference:/app/reference
+        environment:
+            - MLFLOW_TRACKING_URI=http://mlflow-server:5000
+            - MODEL_URI=models:/prediction-energy-model/Production
+            - LOG_PATH=/app/logs/predictions.csv
+            - PROCESSED_PATH=/app/data/processed/
+            - PORT=8001
+        depends_on:
+            - mlflow-server
+        networks:
+            - mlops-net
+        restart: unless-stopped
 
-  # 2. DATA SERVICE
-  data-service:
-    build:
-      context: ./services/data_service
-      dockerfile: Dockerfile
-    container_name: data-service
-    volumes:  
-      - ./data:/app/data       
-    environment:
-      - AZURE_STORAGE_CONNECTION_STRING=${AZURE_STORAGE_CONNECTION_STRING}
-      - PARAMS_PATH=/app/params.yaml
-    networks:
-      - mlops-net
-    profiles:
-      - pipeline    
+    # 5. RECOMMENDATION SERVICE
+    recommendation-service:
+        build:
+            context: ./services/recommendation_service
+            dockerfile: Dockerfile
+        container_name: recommendation-service
+        ports:
+            - "8002:8002"
+        environment:
+            - GROQ_API_KEY=${GROQ_API_KEY}
+            - PORT=8002
+        networks:
+            - mlops-net
+        restart: unless-stopped
 
- 
+    # 6. API GATEWAY (Nginx)
+    api-gateway:
+        build:
+            context: ./services/gateway
+            dockerfile: Dockerfile
+        container_name: api-gateway
+        ports:
+            - "80:80"
+        depends_on:
+            - prediction-service
+            - recommendation-service
+        networks:
+            - mlops-net
+        restart: unless-stopped
 
-  # 3. TRAINING SERVICE
-  training-service:
-    environment:
-      - MLFLOW_TRACKING_URI=http://mlflow-server:5000
-      - EXPERIMENT_NAME=energy-consumption-prediction
-    build:
-      context: ./services/training_service
-      dockerfile: Dockerfile
-    container_name: training-service
-    ports:
-      - "8003:8003" 
-    volumes:
-      - ./data:/app/data
-    depends_on:
-      - mlflow-server
-    networks:
-      - mlops-net       
+    # 7. MONITORING SERVICE
+    monitoring-service:
+        build:
+            context: ./services/monitoring_service
+            dockerfile: Dockerfile
+        container_name: monitoring-service
+        ports:
+            - "8004:8004"
+        volumes:
+            - ./data/logs:/app/logs
+            - ./data/reference:/app/reference
+            # - ./Data/logs:/app/logs
+            # - ./Data/reference:/app/reference
+        environment:
+            - LOG_PATH=/app/logs/predictions.csv
+            - REFERENCE_PATH=/app/reference/reference.csv
+        networks:
+            - mlops-net
+        restart: unless-stopped
 
+    # 8. PROMETHEUS
+    prometheus:
+        image: prom/prometheus:latest
+        container_name: prometheus
+        ports:
+            - "9090:9090"
+        volumes:
+            - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+        networks:
+            - mlops-net
+        depends_on:
+            - monitoring-service
+        restart: unless-stopped
 
-
-  # 4. PREDICTION SERVICE
-  prediction-service:
-    build:
-      context: ./services/prediction_service
-      dockerfile: Dockerfile
-    container_name: prediction-service
-    ports:
-      - "8001:8001"
-    volumes:
-      - ./data/processed:/app/data/processed 
-      - ./data/logs:/app/logs  
-      - ./data/reference:/app/reference
-    environment:
-      - MLFLOW_TRACKING_URI=http://mlflow-server:5000
-      - MODEL_URI=models:/prediction-energy-model/Production
-      - LOG_PATH=/app/logs/predictions.csv
-      - PROCESSED_PATH=/app/data/processed/
-      - PORT=8001
-    depends_on:
-      - mlflow-server
-    networks:
-      - mlops-net
-    restart: unless-stopped
-
-  
-
-  # 5. RECOMMENDATION SERVICE
-  recommendation-service:
-    build:
-      context: ./services/recommendation_service
-      dockerfile: Dockerfile
-    container_name: recommendation-service
-    ports:
-      - "8002:8002"
-    environment:
-      - GROQ_API_KEY=${GROQ_API_KEY}
-      - PORT=8002
-    networks:
-      - mlops-net
-    restart: unless-stopped
-
-
-
-  # 6. API GATEWAY (Nginx)
-  api-gateway:
-    build:
-      context: ./services/gateway
-      dockerfile: Dockerfile
-    container_name: api-gateway
-    ports:
-      - "80:80"
-    depends_on:
-      - prediction-service
-      - recommendation-service
-    networks:
-      - mlops-net
-    restart: unless-stopped
-
-  # 7. MONITORING SERVICE
-  monitoring-service:
-    build:
-      context: ./services/monitoring_service
-      dockerfile: Dockerfile
-    container_name: monitoring-service
-    ports:
-      - "8004:8004"
-    volumes:
-      - ./Data/logs:/app/logs
-      - ./Data/reference:/app/reference
-    environment:
-      - LOG_PATH=/app/logs/predictions.csv
-      - REFERENCE_PATH=/app/reference/reference.csv
-    networks:
-      - mlops-net
-    restart: unless-stopped
-
-  # 8. PROMETHEUS
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: prometheus
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
-    networks:
-      - mlops-net
-    depends_on:
-      - monitoring-service
-    restart: unless-stopped
-
-  # 9. GRAFANA
-  grafana:
-    image: grafana/grafana:latest
-    container_name: grafana
-    ports:
-      - "3001:3000"
-    environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-    volumes:
-      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
-    networks:
-      - mlops-net
-    depends_on:
-      - prometheus
-    restart: unless-stopped
-
-  
+    # 9. GRAFANA
+    grafana:
+        image: grafana/grafana:latest
+        container_name: grafana
+        ports:
+            - "3001:3000"
+        environment:
+            - GF_SECURITY_ADMIN_USER=admin
+            - GF_SECURITY_ADMIN_PASSWORD=admin
+        volumes:
+            - grafana-storage:/var/lib/grafana
+            - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+            - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+        networks:
+            - mlops-net
+        depends_on:
+            - prometheus
+        restart: unless-stopped

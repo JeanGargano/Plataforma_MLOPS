@@ -1,8 +1,8 @@
 # MLOps Energy Platform
+
 ### Plataforma MLOps para Predicción de Consumo Energético Residencial mediante Modelos de Machine Learning en Entornos Cloud
 
 > Predice el consumo agregado de electrodomésticos de una vivienda residencial dado su contexto ambiental y temporal, con un pipeline MLOps completo: ingesta, preprocesamiento, entrenamiento, despliegue, monitoreo de drift y recomendaciones con IA.
-
 
 ## Descripción del proyecto
 
@@ -17,18 +17,18 @@ El modelo predice el **consumo agregado de electrodomésticos** (`Appliances`) d
 
 ## Stack tecnológico
 
-| Capa                    | Tecnología |
-|-------------------------|------------|
-| Lenguaje                | Python 3.11 |
-| API REST                | FastAPI + Uvicorn |
-| ML                      | scikit-learn, XGBoost |
-| Experiment tracking     | MLflow |
+| Capa                    | Tecnología               |
+| ----------------------- | ------------------------ |
+| Lenguaje                | Python 3.11              |
+| API REST                | FastAPI + Uvicorn        |
+| ML                      | scikit-learn, XGBoost    |
+| Experiment tracking     | MLflow                   |
 | Versionamiento de datos | DVC + Azure Blob Storage |
-| Contenedores            | Docker + Docker Compose |
-| Gateway                 | Nginx |
-| Detección de Drift      | Evidently AI |
-| Monitoreo               | Prometheus + Grafana |
-| IA Generativa           | Groq API (LLaMA) |
+| Contenedores            | Docker + Docker Compose  |
+| Gateway                 | Nginx                    |
+| Detección de Drift      | Evidently AI             |
+| Monitoreo               | Prometheus + Grafana     |
+| IA Generativa           | Groq API (LLaMA)         |
 
 ---
 
@@ -37,10 +37,10 @@ El modelo predice el **consumo agregado de electrodomésticos** (`Appliances`) d
 Antes de comenzar asegúrate de tener instalado:
 
 | Herramienta    | Versión mínima |
-|----------------|----------------|
-| Docker Desktop | 24.x |
-| Docker Compose | 2.x |
-| Git            | cualquiera |
+| -------------- | -------------- |
+| Docker Desktop | 24.x           |
+| Docker Compose | 2.x            |
+| Git            | cualquiera     |
 
 Asegúrarse de que Docker Desktop esté corriendo antes de ejecutar cualquier comando.
 
@@ -68,7 +68,7 @@ GROQ_API_KEY=tu_groq_api_key_aqui
 
 # Grafana
 GRAFANA_USER=admin
-GRAFANA_PASSWORD=admin123
+GRAFANA_PASSWORD=admin
 
 # MLflow
 MLFLOW_TRACKING_URI=http://mlflow-server:5000
@@ -170,56 +170,56 @@ docker compose up -d
 
 ### Prediction Service — `http://localhost:8001`
 
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| GET | /health | Estado del servicio y modelo cargado |
-| POST | /predict | Predice consumo de electrodomésticos |
-| GET | /docs | Documentación Swagger |
+| Método | Ruta     | Descripción                          |
+| ------ | -------- | ------------------------------------ |
+| GET    | /health  | Estado del servicio y modelo cargado |
+| POST   | /predict | Predice consumo de electrodomésticos |
+| GET    | /docs    | Documentación Swagger                |
 
 ### Training Service — `http://localhost:8003`
 
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| GET | /health | Estado del servicio |
-| POST | /train | Entrena modelos y promueve el mejor |
-| POST | /retrain | Reentrenamiento en background |
+| Método | Ruta     | Descripción                         |
+| ------ | -------- | ----------------------------------- |
+| GET    | /health  | Estado del servicio                 |
+| POST   | /train   | Entrena modelos y promueve el mejor |
+| POST   | /retrain | Reentrenamiento en background       |
 
 ### Recommendation Service — `http://localhost:8002`
 
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| GET | /health | Estado del servicio y Groq key |
-| POST | /recommendations | Genera recomendaciones con IA |
+| Método | Ruta             | Descripción                    |
+| ------ | ---------------- | ------------------------------ |
+| GET    | /health          | Estado del servicio y Groq key |
+| POST   | /recommendations | Genera recomendaciones con IA  |
 
 ### Monitoring Service — `http://localhost:8004`
 
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| GET | /health | Estado del servicio de monitoreo |
-| GET | /metrics | Métricas de drift en formato Prometheus |
+| Método | Ruta     | Descripción                             |
+| ------ | -------- | --------------------------------------- |
+| GET    | /health  | Estado del servicio de monitoreo        |
+| GET    | /metrics | Métricas de drift en formato Prometheus |
 
 ### Vía API Gateway — `http://localhost:80`
 
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| POST | /api/predict | prediction-service /predict |
-| GET | /api/health | prediction-service /health |
-| POST | /api/recommendations | recommendation-service /recommendations |
+| Método | Ruta                 | Descripción                             |
+| ------ | -------------------- | --------------------------------------- |
+| POST   | /api/predict         | prediction-service /predict             |
+| GET    | /api/health          | prediction-service /health              |
+| POST   | /api/recommendations | recommendation-service /recommendations |
 
 ---
 
 ## Servicios y puertos
 
-| Servicio               | URL | Descripción       |
-|------------------------|-----|-------------      |
-| API Gateway            | `http://localhost:80`   | Punto de entrada único |
-| Prediction Service     | `http://localhost:8001` | API de predicción |
-| Recommendation Service | `http://localhost:8002` | API de recomendaciones |
-| Training Service       | `http://localhost:8003` | API de entrenamiento |
-| Monitoring Service     | `http://localhost:8004` | Detección de drift |
+| Servicio               | URL                     | Descripción              |
+| ---------------------- | ----------------------- | ------------------------ |
+| API Gateway            | `http://localhost:80`   | Punto de entrada único   |
+| Prediction Service     | `http://localhost:8001` | API de predicción        |
+| Recommendation Service | `http://localhost:8002` | API de recomendaciones   |
+| Training Service       | `http://localhost:8003` | API de entrenamiento     |
+| Monitoring Service     | `http://localhost:8004` | Detección de drift       |
 | MLflow UI              | `http://localhost:5000` | Gestión ciclo de vida ML |
-| Prometheus             | `http://localhost:9090` | Recolección de métricas |
-| Grafana                | `http://localhost:3001` | Dashboard de monitoreo |
+| Prometheus             | `http://localhost:9090` | Recolección de métricas  |
+| Grafana                | `http://localhost:3001` | Dashboard de monitoreo   |
 
 ---
 
@@ -234,25 +234,26 @@ Content-Type: application/json
 
 ```json
 {
-  "temperatura_sala": 20.5,
-  "consumo_iluminacion": 30.0,
-  "temperatura_exterior": 7.0,
-  "humedad_exterior": 92.0,
-  "temperatura_meteorologica": 6.6,
-  "hora": 17,
-  "dia_semana": 0,
-  "mes": 1,
-  "es_fin_de_semana_enc": 0,
-  "rango_termico_enc": 1
+    "temperatura_sala": 20.5,
+    "consumo_iluminacion": 30.0,
+    "temperatura_exterior": 7.0,
+    "humedad_exterior": 92.0,
+    "temperatura_meteorologica": 6.6,
+    "hora": 17,
+    "dia_semana": 0,
+    "mes": 1,
+    "es_fin_de_semana_enc": 0,
+    "rango_termico_enc": 1
 }
 ```
 
 Respuesta esperada:
+
 ```json
 {
-  "consumo_electrodomesticos": 97.5,
-  "modelo_version": "models:/prediction-energy-model/Production",
-  "unidad": "Wh"
+    "consumo_electrodomesticos": 97.5,
+    "modelo_version": "models:/prediction-energy-model/Production",
+    "unidad": "Wh"
 }
 ```
 
@@ -267,26 +268,27 @@ Content-Type: application/json
 
 ```json
 {
-  "consumo_predicho": 169.8493,
-  "temperatura_sala": 20.5,
-  "consumo_iluminacion": 30.0,
-  "temperatura_exterior": 7.0,
-  "humedad_exterior": 92.0,
-  "temperatura_meteorologica": 6.6,
-  "hora": 17,
-  "dia_semana": 0,
-  "mes": 1,
-  "es_fin_de_semana": 0,
-  "rango_termico": "Medio"
+    "consumo_predicho": 169.8493,
+    "temperatura_sala": 20.5,
+    "consumo_iluminacion": 30.0,
+    "temperatura_exterior": 7.0,
+    "humedad_exterior": 92.0,
+    "temperatura_meteorologica": 6.6,
+    "hora": 17,
+    "dia_semana": 0,
+    "mes": 1,
+    "es_fin_de_semana": 0,
+    "rango_termico": "Medio"
 }
 ```
 
 Respuesta esperada:
+
 ```json
 {
-  "recomendaciones": "1. [Optimizar calefacción]...\n2. [Iluminación]...\n3. [Horario]...",
-  "consumo_predicho": 97.5,
-  "nivel_consumo": "Medio"
+    "recomendaciones": "1. [Optimizar calefacción]...\n2. [Iluminación]...\n3. [Horario]...",
+    "consumo_predicho": 97.5,
+    "nivel_consumo": "Medio"
 }
 ```
 
@@ -299,14 +301,15 @@ POST http://localhost:8003/train
 ```
 
 No requiere body. Respuesta esperada:
+
 ```json
 {
-  "status": "success",
-  "best_model": "XGBoost",
-  "run_id": "abc123...",
-  "test_mae": 45.23,
-  "test_rmse": 67.81,
-  "test_r2": 0.76
+    "status": "success",
+    "best_model": "XGBoost",
+    "run_id": "abc123...",
+    "test_mae": 45.23,
+    "test_rmse": 67.81,
+    "test_r2": 0.76
 }
 ```
 
@@ -339,33 +342,35 @@ El `monitoring_service` detecta **data drift** — cuando los datos que llegan e
 
 ### Métricas expuestas
 
-| Métrica | Tipo | Descripción |
-|---------|------|-------------|
-| `dataset_drift_share` | Gauge | Proporción de columnas con drift (0.0 a 1.0) |
-| `dataset_has_drift` | Gauge | 1 si hay drift general, 0 si está normal |
-| `model_predictions_total` | Gauge | Total de predicciones analizadas |
-| `model_avg_prediction` | Gauge | Consumo promedio predicho en la ventana actual |
+| Métrica                   | Tipo  | Descripción                                    |
+| ------------------------- | ----- | ---------------------------------------------- |
+| `dataset_drift_share`     | Gauge | Proporción de columnas con drift (0.0 a 1.0)   |
+| `dataset_has_drift`       | Gauge | 1 si hay drift general, 0 si está normal       |
+| `model_predictions_total` | Gauge | Total de predicciones analizadas               |
+| `model_avg_prediction`    | Gauge | Consumo promedio predicho en la ventana actual |
 
 ### Verificar que funciona
 
 ```
 GET http://localhost:8004/health
 ```
+
 ```json
-{"status": "monitoring service is alive and looking for drift!"}
+{ "status": "monitoring service is alive and looking for drift!" }
 ```
 
 ```
 GET http://localhost:8004/metrics
 ```
-Devuelve métricas en formato Prometheus texto plano.
 
+Devuelve métricas en formato Prometheus texto plano.
 
 ### Dashboard de Grafana
 
 Accede en `http://localhost:3001` con usuario `admin` / contraseña `admin`.
 
 El dashboard **MLOps - Monitoreo Energético** incluye:
+
 - Estado del modelo (verde = normal, rojo = drift detectado)
 - Porcentaje de columnas con drift
 - Total de predicciones en producción
