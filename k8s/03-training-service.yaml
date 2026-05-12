@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: training-service
+  namespace: mlops
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: training-service
+  template:
+    metadata:
+      labels:
+        app: training-service
+    spec:
+      containers:
+      - name: training-service
+        image: mlops/training-service:v1.0
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8003
+        envFrom:
+        - configMapRef:
+            name: mlops-config
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "2000m"
+            memory: "3Gi"
+        volumeMounts:
+        - name: app-data
+          mountPath: /app/data
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8003
+          initialDelaySeconds: 20
+          periodSeconds: 10
+      volumes:
+      - name: app-data
+        persistentVolumeClaim:
+          claimName: app-data-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: training-service
+  namespace: mlops
+spec:
+  selector:
+    app: training-service
+  ports:
+  - port: 8003
+    targetPort: 8003
+    nodePort: 30803
+  type: NodePort
