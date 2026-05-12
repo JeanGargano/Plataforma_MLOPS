@@ -24,7 +24,7 @@ spec:
             name: mlops-config
         volumeMounts:
         - name: app-data
-          mountPath: /app/data        # ← monta todo el PVC aquí
+          mountPath: /app/data
         resources:
           requests:
             cpu: "250m"

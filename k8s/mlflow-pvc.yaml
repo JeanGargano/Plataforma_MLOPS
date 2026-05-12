@@ -24,7 +24,6 @@ spec:
     requests:
       storage: 3Gi
 ---
-# PVC para el dataset compartido entre data-service y training-service
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
