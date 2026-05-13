@@ -1,0 +1,36 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: data-service-job
+  namespace: mlops
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: data-service
+        image: mlops/data-service:v1.0
+        imagePullPolicy: Never   # Usar imagen local de Minikube
+        env:
+        - name: AZURE_STORAGE_CONNECTION_STRING
+          valueFrom:
+            secretKeyRef:
+              name: mlops-secrets
+              key: AZURE_STORAGE_CONNECTION_STRING
+        - name: PARAMS_PATH
+          value: "/app/params.yaml"
+        volumeMounts:
+        - name: app-data
+          mountPath: /app/data
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+          limits:
+            cpu: "1500m"
+            memory: "2Gi"
+      volumes:
+      - name: app-data
+        persistentVolumeClaim:
+          claimName: app-data-pvc

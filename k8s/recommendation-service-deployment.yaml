@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: recommendation-service
+  namespace: mlops
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: recommendation-service
+  template:
+    metadata:
+      labels:
+        app: recommendation-service
+    spec:
+      containers:
+        - name: recommendation-service
+          image: mlops/recommendation-service:v1.0
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8002
+          env:
+            - name: GEMINI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: mlops-secrets
+                  key: GEMINI_API_KEY
+            - name: PORT
+              value: "8002"
+      restartPolicy: Always

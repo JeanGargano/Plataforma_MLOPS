@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert --file docker-compose.yml --out k8s/ --volumes hostPath
+    kompose.version: 1.32.0 (765fde254)
+  labels:
+    io.kompose.service: mlflow-server
+  name: mlflow-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: mlflow-server
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert --file docker-compose.yml --out k8s/ --volumes hostPath
+        kompose.version: 1.32.0 (765fde254)
+      labels:
+        io.kompose.network/plataforma-mlops-mlops-net: "true"
+        io.kompose.service: mlflow-server
+    spec:
+      containers:
+        - args:
+            - mlflow
+            - server
+            - --backend-store-uri
+            - sqlite:///mlflow/db/mlflow.db
+            - --artifacts-destination
+            - /mlflow/artifacts
+            - --host
+            - 0.0.0.0
+            - --port
+            - "5000"
+            - --dev
+            - --allowed-hosts
+            - '*'
+          env:
+            - name: GUNICORN_CMD_ARGS
+              value: --timeout 120
+            - name: MLFLOW_ARTIFACT_ROOT
+              value: /mlflow/artifacts
+            - name: MLFLOW_BACKEND_STORE_URI
+              value: sqlite:///mlflow/db/mlflow.db
+            - name: MLFLOW_ENABLE_PROXY_FIX
+              value: "true"
+            - name: MLFLOW_FLASK_SERVER_SECRET_KEY
+              value: mlops-energy-secret
+          image: ghcr.io/mlflow/mlflow:latest
+          name: mlflow-server
+          ports:
+            - containerPort: 5000
+              hostPort: 5000
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /mlflow/db
+              name: mlflow-data
+            - mountPath: /mlflow/artifacts
+              name: mlflow-artifacts
+      restartPolicy: Always
+      volumes:
+        - hostPath:
+            path: /home/vagrant/Plataforma_MLOPS
+          name: mlflow-data
+        - hostPath:
+            path: /home/vagrant/Plataforma_MLOPS
+          name: mlflow-artifacts
