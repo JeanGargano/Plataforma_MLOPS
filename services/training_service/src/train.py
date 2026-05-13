@@ -71,7 +71,8 @@ def train_and_log(model, model_name: str, params: dict,
     if mlflow.active_run():
         mlflow.end_run()
 
-    with mlflow.start_run(run_name=model_name):
+    with mlflow.start_run(run_name=model_name) as run:
+        run_id = run.info.run_id
 
         # Entrenamiento
         model.fit(X_train, y_train)
@@ -106,7 +107,7 @@ def train_and_log(model, model_name: str, params: dict,
             registered_model_name=MODEL_NAME
         )
 
-        run_id = mlflow.active_run().info.run_id
+
 
     print(f"\n  {model_name}")
     print(f"    Train -> MAE: {train_metrics['mae']} | RMSE: {train_metrics['rmse']} | R2: {train_metrics['r2']}")

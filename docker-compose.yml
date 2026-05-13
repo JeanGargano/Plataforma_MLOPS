@@ -143,6 +143,35 @@ services:
         environment:
             - LOG_PATH=/app/logs/predictions.csv
             - REFERENCE_PATH=/app/reference/reference.csv
+            - TRAINING_URL=http://training-service:8003/train
+        depends_on:
+            - training-service
+        networks:
+            - mlops-net
+        restart: unless-stopped
+
+    # Le proporcionamos métricas del host a Prometheus a través de Node Exporter
+    node-exporter:
+        image: prom/node-exporter:latest
+        container_name: node-exporter
+        ports:
+            - "9100:9100"
+        networks:
+            - mlops-net
+        restart: unless-stopped
+
+    # Le proporcionamos métricas de contenedores a Prometheus a través de cAdvisor
+    cadvisor:
+        image: gcr.io/cadvisor/cadvisor:latest
+        container_name: cadvisor
+        ports:
+            - "8080:8080"
+        volumes:
+            - /:/rootfs:ro
+            - /var/run:/var/run:ro
+            - /sys:/sys:ro
+            - /var/lib/docker/:/var/lib/docker:ro
+            - /dev/disk/:/dev/disk:ro
         networks:
             - mlops-net
         restart: unless-stopped

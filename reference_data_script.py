@@ -16,10 +16,21 @@ feature_cols = [
     "rango_termico"
 ]
 
-reference = df[feature_cols].dropna().head(2000)
+reference = df[feature_cols].dropna().head(2000).copy()
+
+rango_map = {
+    "Bajo": 0,
+    "Medio": 1,
+    "Alto": 2
+}
+
+reference["rango_termico"] = reference["rango_termico"].map(rango_map)
+reference["es_fin_de_semana"] = reference["es_fin_de_semana"].astype(int)
+reference["rango_termico"] = reference["rango_termico"].astype(int)
 
 os.makedirs("data/reference", exist_ok=True)
 reference.to_csv("data/reference/reference.csv", index=False)
 
 print(f"Reference generado: {len(reference)} filas")
 print(reference.head(3))
+print(reference.dtypes)

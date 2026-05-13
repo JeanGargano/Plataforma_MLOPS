@@ -1,8 +1,11 @@
 from fastapi import FastAPI, Response
-from prometheus_client import generate_latest, Gauge, CONTENT_TYPE_LATEST
+from prometheus_client import generate_latest, Gauge, Counter,CONTENT_TYPE_LATEST
 from src.drift_detector import calculate_drift, CURRENT_PATH
+from datetime import datetime, timedelta
 import pandas as pd
+import requests
 import os
+
 
 app = FastAPI(title="MLOps Monitoring Service")
 
@@ -14,6 +17,37 @@ HAS_DRIFT_GAUGE = Gauge('dataset_has_drift', '1 si hay drift general detectado, 
 PREDICTIONS_COUNT_GAUGE = Gauge('model_predictions_total', 'Total de predicciones recientes analizadas')
 AVG_PREDICTION_GAUGE = Gauge('model_avg_prediction', 'Valor promedio del consumo predicho en la ventana actual')
 
+# Metrica para contar reentrenamientos
+MODEL_RETRAIN_COUNTER = Counter(
+    "model_retraining_total",
+    "Cantidad total de reentrenamientos ejecutados por detección de drift"
+)
+
+TRAINING_URL = os.environ.get("TRAINING_URL", "http://training-service:8003/train")
+last_retraining_time = None
+RETRAIN_COOLDOWN_MINUTES = 30
+
+def trigger_retraining():
+    global last_retraining_time
+
+    now = datetime.utcnow()
+
+    if last_retraining_time and now - last_retraining_time < timedelta(minutes=RETRAIN_COOLDOWN_MINUTES):
+        print("Reentrenamiento omitido: cooldown activo.")
+        return
+    
+    last_retraining_time = now
+
+    try:
+        print("Drift detectado. Lanzando reentrenamiento...")
+        response = requests.post(TRAINING_URL, timeout=120)
+        print(f"Respuesta training-service: {response.status_code} - {response.text}")
+        
+        if response.status_code == 200:
+            MODEL_RETRAIN_COUNTER.inc()
+    except Exception as e:
+        print(f"Error lanzando reentrenamiento: {e}")
+
 def update_metrics():
     print("Actualizando métricas para Prometheus...")
     
@@ -24,6 +58,12 @@ def update_metrics():
         has_drift = 1.0 if drift_result.get('dataset_drift') else 0.0
         DRIFT_SHARE_GAUGE.set(share)
         HAS_DRIFT_GAUGE.set(has_drift)
+        
+        if has_drift == 1.0 and not drift_result.get("not_enough_data", False):
+            trigger_retraining()
+    else:
+        DRIFT_SHARE_GAUGE.set(0.0)
+        HAS_DRIFT_GAUGE.set(0.0)
         
     # 2. Actualizar métricas de Comportamiento del Modelo
     if os.path.exists(CURRENT_PATH):

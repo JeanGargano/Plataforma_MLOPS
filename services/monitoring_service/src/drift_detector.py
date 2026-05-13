@@ -7,6 +7,7 @@ import os
 BASE_DIR_LOCAL = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 REFERENCE_PATH = os.environ.get("REFERENCE_PATH", os.path.join(BASE_DIR_LOCAL, "Data", "reference", "reference.csv"))
 CURRENT_PATH = os.environ.get("LOG_PATH", os.path.join(BASE_DIR_LOCAL, "Data", "logs", "predictions.csv"))
+MIN_CURRENT_ROWS = 50
 
 def calculate_drift():
     print(f"Buscando datos en:\nRef: {REFERENCE_PATH}\nLogs: {CURRENT_PATH}")
@@ -18,6 +19,20 @@ def calculate_drift():
     # 1. Leer los datos
     reference_data = pd.read_csv(REFERENCE_PATH)
     current_data = pd.read_csv(CURRENT_PATH)
+    
+    if len(current_data) < MIN_CURRENT_ROWS:
+        print(
+            f"No hay suficientes predicciones para evaluar el drift:"
+            f"{len(current_data)} / {MIN_CURRENT_ROWS}"
+        )
+        
+        return {
+            "data_drift": False,
+            "share_of_drifted_columns": 0.0,
+            "not_enough_data": True
+        }
+            
+    
 
     # Quitar columnas que evidentemente no estaban en la referencia, como timestamp o la predicción (si solo evaluamos drift en los features)
     if 'timestamp' in current_data.columns:
