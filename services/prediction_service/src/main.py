@@ -7,6 +7,8 @@ from fastapi import FastAPI, HTTPException
 from schemas      import PredictionInput, PredictionOutput, HealthResponse
 from model_loader import load_model, MODEL_URI
 from logger       import log_prediction
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 
 
 PROCESSED_PATH = os.getenv("PROCESSED_PATH", "/app/data/processed/")
@@ -54,7 +56,16 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # ENDPOINTS
 @app.get("/health", response_model=HealthResponse)

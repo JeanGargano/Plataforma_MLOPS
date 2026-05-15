@@ -2,6 +2,7 @@ import os
 from fastapi import FastAPI, HTTPException
 from schemas import RecommendationInput, RecommendationOutput
 from groq_client import get_recommendations
+from fastapi.middleware.cors import CORSMiddleware
 
 
 app = FastAPI(
@@ -9,7 +10,16 @@ app = FastAPI(
     description="Genera recomendaciones de eficiencia energética usando Groq API",
     version="1.0.0"
 )
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/health")
 def health():

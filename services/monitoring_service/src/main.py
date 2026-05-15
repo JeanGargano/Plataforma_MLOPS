@@ -5,9 +5,21 @@ from datetime import datetime, timedelta
 import pandas as pd
 import requests
 import os
+from fastapi.middleware.cors import CORSMiddleware
 
 
 app = FastAPI(title="MLOps Monitoring Service")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 # Declarar métricas para Prometheus (Data Drift)
 DRIFT_SHARE_GAUGE = Gauge('dataset_drift_share', 'Proporción de columnas con data drift (0.0 a 1.0)')

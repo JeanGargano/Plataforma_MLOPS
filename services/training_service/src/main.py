@@ -3,12 +3,23 @@ from fastapi import FastAPI, BackgroundTasks
 from pydantic import BaseModel
 from train   import run_training
 from promote import promote_best_model
+from fastapi.middleware.cors import CORSMiddleware
 
 
 app = FastAPI(
     title="Training Service",
     description="Entrenamiento, promoción y evaluación de modelos de predicción energética",
     version="1.0.0"
+)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 

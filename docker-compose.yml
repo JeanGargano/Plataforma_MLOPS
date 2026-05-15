@@ -208,3 +208,24 @@ services:
         depends_on:
             - prometheus
         restart: unless-stopped
+    # 10. FRONTEND
+    frontend:
+        build:
+            context: ./frontend
+            dockerfile: Dockerfile
+
+        container_name: frontend
+
+        ports:
+            - "3000:80"
+
+        depends_on:
+            - prediction-service
+            - recommendation-service
+            - monitoring-service
+            - training-service
+
+        networks:
+            - mlops-net
+
+        restart: unless-stopped

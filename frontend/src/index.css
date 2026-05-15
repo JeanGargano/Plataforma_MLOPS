@@ -1,0 +1,16 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+ 
+/* Estilos base para inputs y selects del formulario */
+@layer components {
+  .form-input {
+    @apply w-full bg-[#111c30] border border-[#1a2d4a] rounded-lg px-3 py-2
+           text-white text-sm font-mono outline-none
+           focus:border-blue-600 transition-colors;
+  }
+  .form-label {
+    @apply text-xs text-slate-400 font-mono uppercase tracking-wider mb-1 block;
+  }
+}
